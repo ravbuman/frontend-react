@@ -1,0 +1,163 @@
+/* Custom scrollbar styles - Minimal and soft */
+:root {
+  --scrollbar-width: 6px;
+  --scrollbar-track: rgba(226, 232, 240, 0.1);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.3);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.5);
+}
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+*::-webkit-scrollbar {
+  width: var(--scrollbar-width);
+  height: var(--scrollbar-width);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 10px;
+  transition: background-color 0.3s ease;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Prevent horizontal overflow and scrollbars */
+.no-horizontal-scroll {
+  overflow-x: hidden !important;
+  max-width: 100%;
+}
+
+/* Smooth animations - 60fps optimized */
+.smooth-animation {
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  perspective: 1000px;
+  -webkit-perspective: 1000px;
+}
+
+/* Message animations */
+.message-enter {
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message-enter-active {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.message-hover {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message-hover:hover {
+  transform: translateY(-1px) scale(1.01);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Button animations */
+.button-smooth {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: translateZ(0);
+}
+
+.button-smooth:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.button-smooth:active {
+  transform: translateY(0) scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* Typing indicator animation */
+.typing-dot {
+  animation: typingBounce 1.4s infinite ease-in-out;
+  transform: translateZ(0);
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+.typing-dot:nth-child(3) { animation-delay: 0s; }
+
+@keyframes typingBounce {
+  0%, 80%, 100% {
+    transform: scale(0.8) translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1) translateY(-10px);
+    opacity: 1;
+  }
+}
+
+/* Smooth scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Avatar pulse animation */
+.avatar-pulse {
+  animation: avatarPulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes avatarPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+  }
+}
+
+/* Gradient animations */
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gradientShift 3s ease infinite;
+}
+
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Modern glassmorphism effects */
+.glass-effect {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth transitions for all interactive elements */
+.interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.interactive:hover {
+  transform: translateY(-1px);
+}
