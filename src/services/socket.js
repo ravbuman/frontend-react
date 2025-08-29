@@ -14,7 +14,7 @@ class SocketService {
 
     console.log('Connecting to socket with token:', token ? 'Token provided' : 'No token');
 
-    this.socket = io('http://localhost:5000', {
+    this.socket = io('https://back-chat-app.onrender.com', {
       auth: {
         token: token,
       },
