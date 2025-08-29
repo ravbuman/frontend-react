@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: 'https://back-chat-app.onrender.com/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
