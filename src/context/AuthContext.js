@@ -125,22 +125,22 @@ export const AuthProvider = ({ children }) => {
     const validateStoredToken = async () => {
       const token = localStorage.getItem('token');
       const user = localStorage.getItem('user');
-      
+
       if (token && user) {
         try {
           // Validate token with backend
           const response = await authAPI.getProfile();
           const responseData = response.data.data;
           const validUser = responseData.user;
-          
+
           dispatch({
             type: AuthActionTypes.LOAD_USER_SUCCESS,
             payload: { user: validUser, token },
           });
-          
+
           // Update stored user data
           localStorage.setItem('user', JSON.stringify(validUser));
-          
+
           // Connect to socket
           socketService.connect(token);
         } catch (error) {
@@ -168,13 +168,17 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       dispatch({ type: AuthActionTypes.LOGIN_START });
-      
+
       const response = await authAPI.login(credentials);
-      const { token, user } = response.data.data; // Note: backend sends data in data.data
+      const { tokens, user } = response.data.data; // tokens: { accessToken, refreshToken }
+      const token = tokens.accessToken;
+      const refreshToken = tokens.refreshToken;
 
       // Store in localStorage
       localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
+
 
       // Connect to socket
       socketService.connect(token);
@@ -199,12 +203,15 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       dispatch({ type: AuthActionTypes.REGISTER_START });
-      
+
       const response = await authAPI.register(userData);
-      const { token, user } = response.data.data; // Note: backend sends data in data.data
+      const { tokens, user } = response.data.data; // tokens: { accessToken, refreshToken }
+      const token = tokens.accessToken;
+      const refreshToken = tokens.refreshToken;
 
       // Store in localStorage
       localStorage.setItem('token', token);
+      localStorage.setItem('refreshToken', refreshToken);
       localStorage.setItem('user', JSON.stringify(user));
 
       // Connect to socket
@@ -236,10 +243,10 @@ export const AuthProvider = ({ children }) => {
       // Clear localStorage
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      
+
       // Disconnect socket
       socketService.disconnect();
-      
+
       dispatch({ type: AuthActionTypes.LOGOUT });
     }
   };
@@ -249,10 +256,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.updateProfile(userData);
       const updatedUser = response.data.user;
-      
+
       // Update localStorage
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+
       dispatch({
         type: AuthActionTypes.UPDATE_PROFILE_SUCCESS,
         payload: updatedUser,

@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+
 // Create axios instance with base configuration
 const api = axios.create({
   baseURL: 'http://localhost:5000/api',
@@ -7,6 +8,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true // Send cookies with every request
 });
 
 // Request interceptor to add auth token

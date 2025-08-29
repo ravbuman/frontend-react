@@ -1,83 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { useChat } from '../../context/ChatContext';
+import { usersAPI } from '../../services/api';
 import { getAvatarByUserId } from '../../assets/avatars';
 import Swal from 'sweetalert2';
 
 const UserList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   
   const { searchUsers, selectUser, currentChatUser } = useChat();
 
-  // Load users on component mount
+
+  // Load online users on component mount
   useEffect(() => {
-    const loadUsers = async () => {
+    const loadOnlineAndAllUsers = async () => {
       try {
         setLoading(true);
         setError('');
-        const result = await searchUsers(''); // Empty string to get all users
-        
-        if (result.success) {
-          setUsers(result.data.users || []);
-        } else {
-          setError('Failed to load users');
-          Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Failed to load users. Please try again.',
-            confirmButtonColor: '#8B5CF6'
-          });
-        }
+        // Fetch online users
+        const onlineRes = await usersAPI.getOnlineUsers();
+        const onlineUsers = onlineRes.data.success ? (onlineRes.data.data.users || []) : [];
+        setUsers(onlineUsers);
+        // Fetch all users (for offline section)
+        const allRes = await searchUsers('all');
+        const allUsersList = allRes.success ? (allRes.data.users || []) : [];
+        setAllUsers(allUsersList);
       } catch (err) {
         setError('Failed to load users');
         console.error('Error loading users:', err);
-        Swal.fire({
-          icon: 'error',
-          title: 'Network Error',
-          text: 'Could not connect to server. Please check your connection.',
-          confirmButtonColor: '#8B5CF6'
-        });
       } finally {
         setLoading(false);
       }
     };
-
-    loadUsers();
+    loadOnlineAndAllUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, []);
+
 
   const loadUsers = async () => {
-    try {
-      setLoading(true);
-      setError('');
-      const result = await searchUsers(searchTerm);
-      
-      if (result.success) {
-        setUsers(result.data.users || []);
-      } else {
+    if (searchTerm.length >= 3) {
+      try {
+        setLoading(true);
+        setError('');
+        const result = await searchUsers(searchTerm);
+        if (result.success) {
+          setUsers(result.data.users || []);
+        } else {
+          setError('Failed to load users');
+        }
+      } catch (err) {
         setError('Failed to load users');
+        console.error('Error loading users:', err);
+      } finally {
+        setLoading(false);
       }
-    } catch (err) {
-      setError('Failed to load users');
-      console.error('Error loading users:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
   // Handle search with debounce
+
   useEffect(() => {
-    if (searchTerm.length >= 2) {
+    if (searchTerm.length >= 3) {
       const timeoutId = setTimeout(() => {
         loadUsers();
       }, 500); // 500ms debounce
-
       return () => clearTimeout(timeoutId);
     } else if (searchTerm.length === 0) {
-      // If search is cleared, load all users
-      loadUsers();
+      // If search is cleared, reload online and all users
+      const loadOnlineAndAllUsers = async () => {
+        setLoading(true);
+        setError('');
+        try {
+          const onlineRes = await usersAPI.getOnlineUsers();
+          const onlineUsers = onlineRes.data.success ? (onlineRes.data.data.users || []) : [];
+          setUsers(onlineUsers);
+          const allRes = await searchUsers('');
+          const allUsersList = allRes.success ? (allRes.data.users || []) : [];
+          setAllUsers(allUsersList);
+        } catch (err) {
+          setError('Failed to load users');
+          console.error('Error loading users:', err);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadOnlineAndAllUsers();
+    } else {
+      // Do not call API for too-short search terms
+      setUsers([]);
+      setAllUsers([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm]);
@@ -152,9 +166,16 @@ const UserList = () => {
     );
   }
 
+  // Split users into online and offline
+  const onlineUserIds = new Set(users.map(u => u._id));
+  const offlineUsers = allUsers.filter(u => !onlineUserIds.has(u._id));
+
   return (
     <div className="h-full flex flex-col">
-      {/* User List */}
+      {/* Online Users Section */}
+      <div className="px-4 pt-4 pb-2">
+        <h3 className="text-lg font-bold text-blue-600 mb-2">Online Users</h3>
+      </div>
       <div className="flex-1 overflow-y-auto">
         <div className="space-y-1 p-2">
           {users.map((user) => {
@@ -162,7 +183,6 @@ const UserList = () => {
             const isSelected = currentChatUser?._id === user._id;
             const displayName = user.profile?.displayName || user.displayName || `User ${user.phoneNumber?.slice(-4)}`;
             const phoneNumber = user.phoneNumber;
-            
             return (
               <div
                 key={user._id}
@@ -179,7 +199,7 @@ const UserList = () => {
                 {isSelected && (
                   <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-blue-500 to-purple-600 rounded-r-full"></div>
                 )}
-                
+                {/* ...existing code for user card... */}
                 <div className="flex items-center space-x-4">
                   {/* Enhanced Avatar */}
                   <div className="relative flex-shrink-0">
@@ -195,13 +215,11 @@ const UserList = () => {
                     >
                       {displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
                     </div>
-                    
                     {/* Online Status */}
                     <div className="absolute -bottom-1 -right-1">
                       <div className="w-4 h-4 bg-green-400 rounded-full border-2 border-white shadow-sm animate-pulse"></div>
                     </div>
                   </div>
-                  
                   {/* User Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
@@ -218,7 +236,6 @@ const UserList = () => {
                         Online
                       </span>
                     </div>
-                    
                     <div className="flex items-center justify-between">
                       <p className={`
                         text-sm truncate transition-colors duration-200
@@ -229,14 +246,12 @@ const UserList = () => {
                       `}>
                         {phoneNumber ? `+91 ${phoneNumber}` : 'Available to chat'}
                       </p>
-                      
                       {/* Message indicator */}
                       <div className="flex items-center space-x-2">
                         {/* Unread count indicator */}
                         {Math.random() > 0.7 && (
                           <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse"></div>
                         )}
-                        
                         {/* Chevron for selected user */}
                         {isSelected && (
                           <svg className="w-4 h-4 text-blue-500 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,9 +262,103 @@ const UserList = () => {
                     </div>
                   </div>
                 </div>
-                
                 {/* Hover effect overlay */}
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Offline Users Section */}
+        <div className="px-4 pt-4 pb-2">
+          <h3 className="text-lg font-bold text-gray-600 mb-2">Offline Users</h3>
+        </div>
+        <div className="space-y-1 p-2">
+          {offlineUsers.map((user) => {
+            const avatar = getAvatarByUserId(user._id);
+            const isSelected = currentChatUser?._id === user._id;
+            const displayName = user.profile?.displayName || user.displayName || `User ${user.phoneNumber?.slice(-4)}`;
+            const phoneNumber = user.phoneNumber;
+            return (
+              <div
+                key={user._id}
+                onClick={() => handleUserClick(user)}
+                className={`
+                  group relative p-4 rounded-2xl cursor-pointer transition-all duration-200 hover:scale-[1.02]
+                  ${isSelected 
+                    ? 'bg-gradient-to-r from-gray-400/10 to-gray-500/10 border border-gray-200/50 shadow-md' 
+                    : 'hover:bg-white/70 hover:shadow-lg hover:border hover:border-gray-200/50'
+                  }
+                `}
+              >
+                {/* Selection indicator */}
+                {isSelected && (
+                  <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-gradient-to-b from-gray-400 to-gray-600 rounded-r-full"></div>
+                )}
+                {/* ...existing code for user card... */}
+                <div className="flex items-center space-x-4">
+                  {/* Enhanced Avatar */}
+                  <div className="relative flex-shrink-0">
+                    <div 
+                      className={`
+                        w-14 h-14 rounded-full flex items-center justify-center text-lg font-semibold text-white
+                        shadow-lg transition-all duration-200 group-hover:scale-110
+                        ${isSelected ? 'ring-2 ring-gray-400 ring-offset-2' : ''}
+                      `}
+                      style={{
+                        background: `linear-gradient(135deg, ${avatar.color} 0%, ${avatar.color}CC 100%)`
+                      }}
+                    >
+                      {displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </div>
+                    {/* Offline Status */}
+                    <div className="absolute -bottom-1 -right-1">
+                      <div className="w-4 h-4 bg-gray-400 rounded-full border-2 border-white shadow-sm"></div>
+                    </div>
+                  </div>
+                  {/* User Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className={`
+                        font-semibold truncate transition-colors duration-200
+                        ${isSelected 
+                          ? 'text-gray-700' 
+                          : 'text-gray-800 group-hover:text-gray-900'
+                        }
+                      `}>
+                        {displayName}
+                      </h4>
+                      <span className="text-xs text-gray-400 flex-shrink-0">
+                        Offline
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className={`
+                        text-sm truncate transition-colors duration-200
+                        ${isSelected 
+                          ? 'text-gray-600' 
+                          : 'text-gray-500 group-hover:text-gray-600'
+                        }
+                      `}>
+                        {phoneNumber ? `+91 ${phoneNumber}` : 'Available to chat'}
+                      </p>
+                      {/* Message indicator */}
+                      <div className="flex items-center space-x-2">
+                        {/* Unread count indicator */}
+                        {Math.random() > 0.7 && (
+                          <div className="w-2 h-2 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full animate-pulse"></div>
+                        )}
+                        {/* Chevron for selected user */}
+                        {isSelected && (
+                          <svg className="w-4 h-4 text-gray-500 transition-transform duration-200 group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {/* Hover effect overlay */}
+                <div className="absolute inset-0 bg-gradient-to-r from-gray-400/5 to-gray-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"></div>
               </div>
             );
           })}

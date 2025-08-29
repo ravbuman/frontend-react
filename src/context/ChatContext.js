@@ -82,15 +82,16 @@ const chatReducer = (state, action) => {
       };
 
     case ChatActionTypes.ADD_MESSAGE:
-      // Check if message already exists to prevent duplicates
-      const messageExists = state.messages.some(existingMsg => existingMsg._id === action.payload._id);
-      
-      if (messageExists) {
-        console.log('⚠️ Message already exists, skipping:', action.payload._id);
+      // Check for duplicate by _id or messageId
+      const exists = state.messages.some(existingMsg =>
+        existingMsg._id === action.payload._id ||
+        (existingMsg.messageId && existingMsg.messageId === action.payload.messageId)
+      );
+      if (exists) {
+        console.log('⚠️ [REDUCER] Message already exists, skipping:', action.payload._id, action.payload.messageId);
         return state;
       }
-      
-      console.log('✅ Adding new message:', action.payload._id);
+      console.log('✅ [REDUCER] Adding new message:', action.payload._id, action.payload.messageId);
       return {
         ...state,
         messages: [...(Array.isArray(state.messages) ? state.messages : []), action.payload],
@@ -193,13 +194,22 @@ export const ChatProvider = ({ children }) => {
 
     // Message listeners
     const handleNewMessage = (data) => {
-      console.log('📨 Socket received message:', data);
+      console.log('📨 [SOCKET] Received message event:', data);
       const message = data.message || data;
-      console.log('📨 Processing socket message ID:', message._id, 'content:', message.content?.substring(0, 50));
-      
-      // Since we removed optimistic updates, just add the message directly
-      // The ADD_MESSAGE reducer will handle duplicate checking
-      console.log('✅ Adding socket message to state');
+      if (!message._id) {
+        console.warn('⚠️ [SOCKET] Message missing _id, using messageId:', message.messageId);
+        // Fallback: use messageId as _id if present
+        message._id = message.messageId || `temp_${Date.now()}`;
+      }
+      console.log('📨 [SOCKET] Processing message:', {
+        _id: message._id,
+        messageId: message.messageId,
+        senderId: message.senderId,
+        receiverId: message.receiverId,
+        content: message.content,
+        status: data.status,
+      });
+      // Add message to state
       dispatch({
         type: ChatActionTypes.ADD_MESSAGE,
         payload: message,
